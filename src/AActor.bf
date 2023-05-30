@@ -25,6 +25,7 @@ class AActor : UObject
 		public function bool(UObject_Native* self) IsActorBeingDestroyed;
 		public function float(UObject_Native* self) GetActorTickInterval;
 		public function void(UObject_Native* self, float tickInterval) SetActorTickInterval;
+		public function UObject_Native*(UObject_Native* self) GetRootComponent;
 	}
 	protected static new FuncTable sFuncTable;
 	static UClassHandler sHandler = AppLink.RegisterClassHandler(.. new UClassHandler("Actor", typeof(Self))..SetFuncTable(ref sFuncTable));
@@ -36,7 +37,8 @@ class AActor : UObject
 	public bool mIsUpdateBatchStart;
 
 	public UWorld World => AppLink.GetObject(sFuncTable.GetWorld(mNativeObject)) as UWorld;
-	public FVector FordwardVector => sFuncTable.GetActorForwardVector(mNativeObject);
+	public USceneComponent RootComponent => AppLink.GetObject(sFuncTable.GetRootComponent(mNativeObject)) as USceneComponent;
+	public FVector ForwardVector => sFuncTable.GetActorForwardVector(mNativeObject);
 	public FVector UpVector => sFuncTable.GetActorUpVector(mNativeObject);
 	public FVector RightVector => sFuncTable.GetActorRightVector(mNativeObject);
 	public FQuat Quat => sFuncTable.GetActorQuat(mNativeObject);
@@ -78,6 +80,11 @@ class AActor : UObject
 
 	}
 
+	public virtual void FirstTick()
+	{
+
+	}
+
 	public virtual void Update()
 	{
 		mUpdateCnt++;
@@ -88,15 +95,18 @@ class AActor : UObject
 		
 	}
 
-	public virtual void Tick(float seconds)
+	public virtual void Tick(float deltaTime)
 	{
+		if ((mUpdateCnt == 0) && (mTimeAcc == 0))
+			FirstTick();
+
 		float frameTime = 1 / 60.0f;
 
 		float lastFramePct = mTimeAcc / frameTime;
 
 		mIsUpdateBatchStart = true;
 
-		mTimeAcc += (.)seconds;
+		mTimeAcc = Math.Min(mTimeAcc + (.)deltaTime, 1.0f);
 		while (mTimeAcc > frameTime)
 		{
 			Update();

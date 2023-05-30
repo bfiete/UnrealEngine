@@ -29,6 +29,11 @@ struct UWorld_Native : UObject_Native
 
 }
 
+struct AHUD_Native : UObject_Native
+{
+
+}
+
 struct AController_Native : UObject_Native
 {
 
@@ -36,13 +41,6 @@ struct AController_Native : UObject_Native
 
 struct UClass_Native;
 
-class UApp
-{
-	public virtual void StartTick(ELevelTick tick, float timeDelta)
-	{
-
-	}
-}
 
 static class AppLink
 {
@@ -57,6 +55,8 @@ static class AppLink
 		public function FVector(FTransform transform, FVector vec) TransformPositionNoScale;
 		public function FVector(FTransform transform, FVector vec) TransformVector;
 		public function FVector(FTransform transform, FVector vec) TransformVectorNoScale;
+		public function UObject_Native*(char8* name) FindObject;
+		public function UObject_Native*(UClass_Native* uclass) CreateObject;
 	}
 
 	protected static FuncTable sFuncTable;
@@ -64,7 +64,13 @@ static class AppLink
 	static Dictionary<UClass_Native*, UClassHandler> sClassHandlerDict = new .() ~ delete _;
 	static Dictionary<UObject_Native*, (UClassHandler classHandler, UObject object)> sObjectDict = new .() ~ delete _;
 	static HashSet<UObject> sObjectSet = new .() ~ DeleteContainerAndItems!(_);
-	
+	public static Type sAppType;
+
+	public static ~this()
+	{
+		delete gUnrealApp;
+	}
+
 	public static void RegisterClassHandler(UClassHandler classHandler)
 	{
 		Debug.Assert(classHandler.mClassName != null);
@@ -75,9 +81,9 @@ static class AppLink
 		*valuePtr = classHandler;
 	}
 
-	public static void SetWantsDLLUnload(bool onGameModeExit, bool onCPPRebuild)
+	public static void SetWantsDLLUnload(bool onAppDone, bool onCPPRebuild)
 	{
-		sFuncTable.SetWantsDLLUnload(onGameModeExit, onCPPRebuild);
+		sFuncTable.SetWantsDLLUnload(onAppDone, onCPPRebuild);
 	}
 
 	static UObject AllocObject(UObject_Native* uobject)
@@ -131,6 +137,7 @@ static class AppLink
 
 	public static void CheckObjectWeakRefs()
 	{
+		List<UObject> deleteList = scope .();
 		for (var object in sObjectSet)
 		{
 			if (object.IsObjectValid)
@@ -142,14 +149,33 @@ static class AppLink
 			{
 				Debug.Assert(tup.value.object == object);
 			}
-			delete object;
+			deleteList.Add(object);
+			object.PreDelete();
 		}
+
+		for (var object in deleteList)
+			delete object;
 	}
 
 	[Export, CLink]
 	static void App_Init(int32 version, void** funcTable)
 	{
 		sFuncTable = *(FuncTable*)funcTable;
+	}
+
+	[Export, CLink]
+	static void App_Start()
+	{
+		if (sAppType != null)
+			sAppType.CreateObject();
+
+		gUnrealApp?.Init();
+	}
+
+	[Export, CLink]
+	static void App_Done()
+	{
+		delete gUnrealApp;
 	}
 
 	[Export, CLink]
@@ -203,6 +229,14 @@ static class AppLink
 	static void World_StartTick(UWorld_Native* self, ELevelTick tick, float timeDelta)
 	{
 		CheckObjectWeakRefs();
+		gUnrealApp?.StartTick(tick, timeDelta);
+	}
+
+	[Export, CLink]
+	static void HUD_DrawHUD(AHUD_Native* self)
+	{
+		if (var hud = GetUObject(self) as AHUD)
+			hud.DrawHUD();
 	}
 
 	///
@@ -213,4 +247,12 @@ static class AppLink
 	}
 
 	public static void ForceGarbageCollection(bool fullPurge = false) => sFuncTable.Engine_ForceGarbageCollection(fullPurge);
+
+	public static UObject FindObject(StringView name) => GetObject(sFuncTable.FindObject(name.ToScopeCStr!()));
+	public static T CreateObject<T>() where T : UObject, var => GetObject(sFuncTable.CreateObject(T.[Friend]sHandler.mClass)) as T;
+}
+
+static
+{
+	public static UnrealApp gUnrealApp;
 }

@@ -13,6 +13,25 @@ class UWorld : UObject
 		public function AActor_Native*(UObject_Native* self, UClass_Native* uclass, FVector* location, FRotator* rotation, char8* name, EObjectFlags flags) World_SpawnActor;
 		public function void (UObject_Native* self, FVector lineStart, FVector lineEnd, float arrowSize, uint32 color, bool persistentLine, float lifetime, uint8 depthPriority, float thickness) DrawDebugDirectionalArrow;
 		public function void (UObject_Native* self, FVector center, float radius, int32 segments, uint32 color, bool persistentLine, float lifetime, uint8 depthPriority, float thickness, FVector yAxis, FVector zAxis, bool drawAxis) DrawDebugCircle;
+		public function void(UObject_Native* self, out float width, out float height) GetScreenSize;
+	}
+	
+	public float ScreenWidth
+	{
+		get
+		{
+			sFuncTable.GetScreenSize(mNativeObject, var width, ?);
+			return width;
+		}
+	}
+
+	public float ScreenHeight
+	{
+		get
+		{
+			sFuncTable.GetScreenSize(mNativeObject, ?, var height);
+			return height;
+		}
 	}
 
 	public this(UWorld_Native* self) : base(self)

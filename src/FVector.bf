@@ -95,6 +95,15 @@ public struct FVector : IHashable, IEquatable<FVector>
         }
     }
 
+	public FVector Normalized
+	{
+		get
+		{
+			Normalize(this, var vec);
+			return vec;
+		}
+	}
+
 	public this()
 	{
 		this = default;

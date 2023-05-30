@@ -14,6 +14,7 @@ class UObject
 		public function UObject_Native*(UObject_Native* self) GetGameMode;
 		public function UObject_Native*(UObject_Native* self) GetGameState;
 		public function void(UObject_Native* self) GCMarkObject;
+		public function UObject_Native*(UObject_Native* self, UClass_Native* uclass, char8* name, bool transient) CreateDefaultSubobject;
 	}
 	///
 
@@ -34,10 +35,22 @@ class UObject
 		mNativeObject = self;
 	}
 
+	public virtual void PreDelete()
+	{
+
+	}
+
 	public virtual void Init()
 	{
 		sFuncTable.GetWeakRef(mNativeObject, ref mObjectIndex, ref mObjectSerialNumber);
 	}
 
 	public void GCMarkObject() => sFuncTable.GCMarkObject(mNativeObject);
+	public T CreateDefaultSubobject<T>(StringView name = default, bool transient = false) where T : UObject, var =>
+		AppLink.GetObject(sFuncTable.CreateDefaultSubobject(mNativeObject, T.sHandler.mClass, name.IsEmpty ? null : name.ToScopeCStr!(), transient)) as T;
+}
+
+static
+{
+	public static UObject_Native* GetNative(this UObject self) => (self == null) ? null : self.mNativeObject;
 }

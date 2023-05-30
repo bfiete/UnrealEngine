@@ -4,3 +4,15 @@ FileVersion = 1
 Name = "UnrealEngine"
 TargetType = "BeefLib"
 StartupObject = "UnrealEngine.Program"
+
+[[ProjectFolder.Items]]
+Type = "AutoFolder"
+Name = "cpp"
+
+[[ProjectFolder.Items.Items]]
+Type = "Source"
+Path = "UnrealBeef.cpp"
+
+[[ProjectFolder.Items.Items]]
+Type = "Source"
+Path = "UnrealBeef.h"
