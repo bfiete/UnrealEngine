@@ -106,7 +106,7 @@ struct BF_FHitResult_Handler
 
 	operator FHitResult* ()
 	{
-		if (mBFHitResult = NULL)
+		if (mBFHitResult == NULL)
 			return NULL;
 		return &mHitResult;
 	}
@@ -737,7 +737,8 @@ bool UBF_Init(const char* dllPath)
 
 void UBF_App_Done()
 {
-	gApp_Done();
+	if (gApp_Done != NULL)
+		gApp_Done();
 
 	if (gUBF_WantsDLLUnload_OnAppDone)
 	{
